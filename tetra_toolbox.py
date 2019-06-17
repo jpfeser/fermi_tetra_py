@@ -5,7 +5,7 @@ Toolset for manipulating rhombedra and tetrahedra for the fermi surfer info
 """
 import numpy as np
 
-def get_corners(i0,i1,i2,bvect,ng0,eig0):
+def get_corners(i0, i1, i2, bvect, ng0, eig0):
     '''
     inputs:
         i0:  index along first bvect component
@@ -29,15 +29,17 @@ def get_corners(i0,i1,i2,bvect,ng0,eig0):
     k2in = (i2/(ng0[2]-1))*bvect[:,2]
     k2out = (ip2/(ng0[2]-1))*bvect[:,2]
     
-    rcd={}
-    rcd[0]=( k0in+k1in+k2in, eig0[i0,i1,i2])
-    rcd[1]=( k0out+k1in+k2in, eig0[ip0,i1,i2])
-    rcd[2]=( k0in+k1out+k2in, eig0[i0,ip1,i2])
-    rcd[3]=( k0in+k1in+k2out, eig0[i0,i1,ip2])
-    rcd[4]=( k0out+k1out+k2in, eig0[ip0,ip1,i2])
-    rcd[5]=( k0in+k1out+k2out, eig0[i0,ip1,ip2])
-    rcd[6]=( k0out+k1in+k2out, eig0[ip0,i1,ip2])
-    rcd[7]=( k0out+k1out+k2out, eig0[ip0,ip1,ip2])
+    #calculate fermi velocity
+    
+    rcd = {}
+    rcd[0]= (k0in+k1in+k2in, eig0[i0,i1,i2])
+    rcd[1]= (k0out+k1in+k2in, eig0[ip0,i1,i2])
+    rcd[2]= (k0in+k1out+k2in, eig0[i0,ip1,i2])
+    rcd[3]= (k0in+k1in+k2out, eig0[i0,i1,ip2])
+    rcd[4]= (k0out+k1out+k2in, eig0[ip0,ip1,i2])
+    rcd[5]= (k0in+k1out+k2out, eig0[i0,ip1,ip2])
+    rcd[6]= (k0out+k1in+k2out, eig0[ip0,i1,ip2])
+    rcd[7]= (k0out+k1out+k2out, eig0[ip0,ip1,ip2])
     
     return rcd
 
@@ -49,50 +51,172 @@ def break2tetra(rcd):
         where tuple is (kc0,kc1,kc2,eigvalue) where kc0,kc1,kc2 are the x,y,z 
         value of k at the corner, and eigvalue is the associated energy typically.
         
-    output:  tcd a dictionary (6 keys, one for each tetrahedra) where each 
-        contained dictionary has keys corresponding to the 4 corners as numbered
-        in the fermisurfer ArXiv article.
+    output:  tcd is a dictionary with one key for each tetrahedron (6 total),
+           the values are a list (length 4) corresponding to the information at corner.
+           At each corner (i.e. list value), a tuple is given (kc[0:2],energy).  
+           The list is sorted such that the first tuple's energy is the 
+           smallest (ascending).  For definitions of the colors see the ArXiv
+           article (https://arxiv.org/pdf/1811.06177.pdf)
         
     e.g. 
     '''
-    assert isinstance(rcd,dict),'error:  input for break2tetra expected to be dictionary'
-    assert len(rcd)==8,'input dictionary rcd does not have 8 corners in break2tetra'
+    assert isinstance(rcd,dict), 'error:  input for break2tetra expected to be dictionary'
+    assert len(rcd)==8, 'input dictionary rcd does not recieve exactly 8 corners in break2tetra'
 
-    def sortE(tup):
+    def sort_energy(tup): 
+        '''pulls out energy from rcd tuple'''
         return tup[1]
+    
+    #note: values of rcd of form: (float kc[3],float eigc)
 
     # start creating dictionary for red tetrahedra (set of points {2,6,0,3})
-    redlist = [rcd[2],rcd[6],rcd[0],rcd[3]]
-    redlist.sort(key=sortE)
+    redlist = [rcd[2], rcd[6], rcd[0], rcd[3]]
+    redlist.sort(key = sort_energy)
     
     # start creating dictionary for blue tetrahedra (set of points {2,6,0,1})
-    bluelist = [rcd[2],rcd[6],rcd[0],rcd[1]]
-    bluelist.sort(key=sortE)
+    bluelist = [rcd[2], rcd[6], rcd[0], rcd[1]]
+    bluelist.sort(key = sort_energy)
     #print(redlist)
     
     # start creating dictionary for green tetrahedra (set of points {2,6,1,4})
-    greenlist = [rcd[2],rcd[6],rcd[1],rcd[4]]
-    greenlist.sort(key=sortE)
+    greenlist = [rcd[2], rcd[6], rcd[1], rcd[4]]
+    greenlist.sort(key = sort_energy)
     #print(redlist)
     
     # start creating dictionary for magenta tetrahedra 
     #(set of points {2,6,4,7}
-    maglist = [rcd[2],rcd[6],rcd[4],rcd[7]]
-    maglist.sort(key=sortE)
+    maglist = [rcd[2], rcd[6], rcd[4], rcd[7]]
+    maglist.sort(key = sort_energy)
     #print(redlist)
     
     # start creating dictionary for yellow tetrahedra 
     #(set of points {2,6,5,7}
-    yellowlist = [rcd[2],rcd[6],rcd[5],rcd[7]]
-    yellowlist.sort(key=sortE)
+    yellowlist = [rcd[2], rcd[6], rcd[5], rcd[7]]
+    yellowlist.sort(key = sort_energy)
     
     # start creating dictionary for cyan tetrahedra 
     #(set of points {2,6,3,5}
-    cyanlist = [rcd[2],rcd[6],rcd[3],rcd[5]]
-    cyanlist.sort(key=sortE)
+    cyanlist = [rcd[2], rcd[6], rcd[3], rcd[5]]
+    cyanlist.sort(key = sort_energy)
     
-    #now what should I return?
+    # Q: now what should I return? 
+    # A: a dictionary of property lists, one key for each tetrahedron
+    #       the values are the tuples for each of four corners (kc[0:2],energy)
+    #       sorted such that the first tuple energy is smallest.
+    tcd = {}
+    tcd['r'] = redlist
+    tcd['b'] = bluelist
+    tcd['g'] = greenlist
+    tcd['m'] = maglist
+    tcd['y'] = yellowlist
+    tcd['c'] = cyanlist
+    
+    return tcd    
+
+def get_fermi_triangles(tcd_list,ef=0.0):
+    '''
+    get_fermi_triangles(tcd_list,Ef) determine the location of the triangle 
+    intersections on the tetrahedron.
+    
+    Inputs:
+        tcd_list:  a list (length 4) corresponding to the information at corner.
+       At each corner (i.e. list value), a tuple is given (kc[0:2],energy).  
+       The list is sorted such that the first tuple's energy is the 
+       smallest (ascending).  ex. [(0,0,0,1),(0,0,1,1),(0,1,0,1),(0,0,1,2)]
+       
+       ef = Fermi energy (default = 0.0)
+       
+    Outputs:
+        triangles = list (length = # triangles) where each value in the 
+                          list is a 3 x 3 np array (Xtri) with the corners of 
+                          the triangle.  An empty list is returned if there 
+                          are no triangles to return. 
+                          rows are triangle #, 
+                          columns are x,y,z values respectively
+                          
+                          ex. 
+                          [0 0 1;
+                          1 0 1;
+                          0 1 0;]
+                          
+                          means 
+                          point 0: [kx,ky,kz]=[0,0,1]
+                          point 1: [kx,ky,kz]=[1,0,1]
+                          point 2: [kx,ky,kz]=[0,1,0]
+                          
+    '''
+    e = np.zeros(4)
+    k = np.zeros((4,3))
+    ktri = np.zeros((3,3))
+    a = np.zeros((4,4))
+    F = np.zeros((3,4))
+    
+    for i in range(4):
+        e[i]=tcd_list[i][3]
+        k[i,:]=tcd_list[i][0:3]
+        
+    triangles = []
+    if ef>e[0] and ef<=e[1]:
+        for i in range(4):
+            for j in range(4):
+                de = e[i]-e[j]
+                if de == 0.0:
+                    a[i,j]=0.5
+                else:
+                    a[i,j]=(ef-e[j])/de
+                
+        F =np.array([[a[0,1], a[1,0],     0.0, 0.0], \
+                     [a[0,2],    0.0,  a[2,0], 0.0], \
+                     [a[0,3],    0.0,   0.0,   a[3,0]]])
+        
+        ktri = np.matmul(F,k)
+        triangles.append(ktri)
+        return triangles
+    
+    elif ef>e[1] and ef<e[2]:
+        for i in range(4):
+            for j in range(4):
+                de = e[i]-e[j]
+                if de == 0.0:
+                    a[i,j]=0.5
+                else:
+                    a[i,j]=(ef-e[j])/de
+                
+        F =np.array([[a[0,2],    0.0, a[2,0],    0.0], \
+                     [a[0,3],    0.0,    0.0, a[3,0]], \
+                     [   0.0, a[1,3],    0.0, a[3,1]]])
+        
+        ktri = np.matmul(F,k)
+        triangles.append(ktri)
+        
+        F =np.array([[a[0,2],    0.0, a[2,0],    0.0], \
+                     [   0.0, a[1,2], a[2,1],    0.0], \
+                     [   0.0, a[1,3],    0.0, a[3,1]]])
+        
+        ktri = np.matmul(F,k)
+        triangles.append(ktri)
+        return triangles
+    
+    elif ef>=e[2] and ef<e[3]:
+        for i in range(4):
+            for j in range(4):
+                de = e[i]-e[j]
+                if de == 0.0:
+                    a[i,j]=0.5
+                else:
+                    a[i,j]=(ef-e[j])/de
+                
+        F =np.array([[a[0,3],    0.0,     0.0, a[3,0]], \
+                     [a[0,2], a[1,3],     0.0, a[3,1]], \
+                     [a[0,1],    0.0,  a[2,3], a[3,2]]])
+        
+        ktri = np.matmul(F,k)
+        triangles.append(ktri)
+        return triangles
+
+    else:  #(ef < e[0]) or (ef >= e[3]):
+        return triangles
     
     
-    
+    return triangles
         
