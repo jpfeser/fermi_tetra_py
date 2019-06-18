@@ -11,5 +11,5 @@ import tetra_toolbox
 
 # test whether get_fermi_triangles gives good interpolation of triangles
 temp = np.array([([0,0,0],1),([0,0,1],2),([0,1,0],3),([1,0,0],4)])
-output = tetra_toolbox.get_fermi_triangles(temp,ef=3.5)
+output = tetra_toolbox.get_fermi_triangles(temp,ef=1.1)
 print(output)

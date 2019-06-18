@@ -24,6 +24,7 @@ def get_corners(i0, i1, i2, bvect, ng0, eig0):
     ip0 = (i0 + 1) % ng0[0]
     ip1 = (i1 + 1) % ng0[1]
     ip2 = (i2 + 1) % ng0[2]
+    
 
 #    k0in = (i0/(ng0[0]-1))*bvect[:,0]
 #    k0out = ((i0 + 1)/(ng0[0]-1))*bvect[:,0]
@@ -285,4 +286,5 @@ def plot_triangle_set(triangle_set,*argv):
         ax.add_collection3d(tri)
     plt.show()
     return
+
         

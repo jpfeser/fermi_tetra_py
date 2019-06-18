@@ -14,8 +14,13 @@ where   ng0:= k mesh size, [N1,N2,N3], size: [3,]
 """
 import numpy as np
 
-def load_frmsrf(filename):
+ry2joule = 2.1798741E-18
+au2m = 5.291772083E-11
+hbar = 1.0545718e-34
+
+def load_frmsrf(filename,*vargin):
     fo = open(filename,"r")
+        
     
     #Now grid density
     print("loading grid density:\n")
@@ -51,10 +56,14 @@ def load_frmsrf(filename):
     bvect[:,0] = np.array(fo.readline().strip().split(),dtype='float64')
     bvect[:,1] = np.array(fo.readline().strip().split(),dtype='float64')
     bvect[:,2] = np.array(fo.readline().strip().split(),dtype='float64')
+    if len(vargin) is 1:
+        alat = vargin[0]
+        print('detected second argument in load_frmsrf.  Rescaling bvect to 1/m units')
+        bvect = bvect*(2*np.pi/alat)
     print(bvect)
     
     print("Calculating direct lattice vectors (in columns)")
-    avect = np.linalg.inv(bvect.transpose()) #from wikipedia "Reciprocal lattice"
+    avect = np.linalg.inv(1/(2*np.pi)*bvect.transpose()) #from wikipedia "Reciprocal lattice"
     # verified correct using kittel test cases.
     # note that a factor 1/(2*pi) is missing  (may be important)
     print(avect)
@@ -79,7 +88,10 @@ def load_frmsrf(filename):
                     eig0[ib,ii0,ii1,ii2]= float(fo.readline().strip());
     
     print("Energies have been loads into array with shape\n (nbands,nk1,nk2,nk3)=",eig0.shape)                
-    
+    if len(vargin) is 1:
+        print('reporting energy in units of J')
+        eig0 = eig0*ry2joule
+            
     mat0=np.zeros([nb,ng0[0],ng0[1],ng0[2]])
     for ib in np.arange(nb):
         for i0 in np.arange(ng0[0]):
@@ -98,7 +110,57 @@ def load_frmsrf(filename):
                     else:
                         ii2 = (i2 + (ng0[2] + 1) / 2) % ng0[2];
                     mat0[ib,ii0,ii1,ii2]= float(fo.readline().strip());
-     
+    
+    
+    
     print("mat0 has been loaded into array with shape\n (nbands,nk1,nk2,nk3)=",mat0.shape)                 
     print("closing ",filename)
-    return (ng0,nb,avect,bvect,eig0,mat0,lshift)
+    
+    print("Calculating Fermi velocities")
+    vf=np.zeros((nb,ng0[0],ng0[1],ng0[2],3))
+    for ib in np.arange(nb):
+        for i0 in np.arange(ng0[0]):
+            if (lshift != 0):
+                ii0 = i0;
+                ip0 = (ii0 + 1) % ng0[0]
+                im0 = (ii0 - 1) % ng0[0]
+                dk0 = 2/ng0[0]*bvect[:,0]
+            else:
+                print('error lshift == 0')
+                #ii0 = (i0 + (ng0[0] + 1) / 2) % ng0[0];
+            for i1 in np.arange(ng0[1]):
+                if (lshift != 0):
+                    ii1 = i1;
+                    ip1 = (ii1 + 1) % ng0[1]
+                    im1 = (ii1 - 1) % ng0[1]
+                    dk1 = 2/ng0[1]*bvect[:,1]
+                else:
+                    print('error lshift == 0')
+                    ii1 = (i1 + (ng0[1] + 1) / 2) % ng0[1];
+                for i2 in np.arange(ng0[2]):
+                    if (lshift != 0):
+                        ii2 = i2;
+                        ip2 = (ii2 + 1) % ng0[2]
+                        im2 = (ii2 - 1) % ng0[2]
+                        dk2 = 2/ng0[2]*bvect[:,2]
+                        
+                        de0 = eig0[ib, ip0, ii1, ii2] - eig0[ib, im0, ii1, ii2]
+                        de1 = eig0[ib, ii0, ip1, ii2] - eig0[ib, ii0, im1, ii2]
+                        de2 = eig0[ib, ii0, ii1, ip2] - eig0[ib, ii0, ii1, im2]
+                        
+                        A = np.zeros((3,3))
+                        A[0,:]=dk0
+                        A[1,:]=dk1
+                        A[2,:]=dk2
+                        de = np.array([de0,de1,de2])
+                        vf[ib,ii0,ii1,ii2,:] = np.linalg.solve(A,de)
+                        
+                    else:
+                        print('error lshift == 0')
+                        ii2 = (i2 + (ng0[2] + 1) / 2) % ng0[2];
+    
+    if len(vargin) is 1:
+        print('reporting vf in units of m/s')
+        vf = vf/hbar
+    
+    return (ng0,nb,avect,bvect,eig0,mat0,lshift,vf)

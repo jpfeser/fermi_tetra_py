@@ -10,11 +10,12 @@ import load_frmsf
 import tetra_toolbox
 
 FILENAME = "vfermi.frmsf"
-# load data from frmsf file
-(ng0, nb, avect, bvect, eig0, mat0, lshift) = load_frmsf.load_frmsrf(FILENAME)
+alat =  5.671348546*load_frmsf.au2m
 
-#Now do some calculation for each band/tetrahedron
-#for each band
+# load data from frmsf file
+(ng0, nb, avect, bvect, eig0, mat0, lshift, vf) = load_frmsf.load_frmsrf(FILENAME,alat)
+
+#Now extract the Fermi surface for each band
 all_triangles = []
 step = 2
 for band in range(nb):
