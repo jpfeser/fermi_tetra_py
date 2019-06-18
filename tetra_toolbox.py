@@ -4,6 +4,9 @@
 Toolset for manipulating rhombedra and tetrahedra for the fermi surfer info
 """
 import numpy as np
+import mpl_toolkits.mplot3d as a3
+import matplotlib.colors as colors
+import matplotlib.pyplot as plt
 
 def get_corners(i0, i1, i2, bvect, ng0, eig0):
     '''
@@ -122,7 +125,7 @@ def get_fermi_triangles(tcd_list,ef=0.0):
         tcd_list:  a list (length 4) corresponding to the information at corner.
        At each corner (i.e. list value), a tuple is given (kc[0:2],energy).  
        The list is sorted such that the first tuple's energy is the 
-       smallest (ascending).  ex. [(0,0,0,1),(0,0,1,1),(0,1,0,1),(0,0,1,2)]
+       smallest (ascending).  ex. [([0,0,0],1),([0,0,1],1),([0,1,0],1),([0,0,1],2)]
        
        ef = Fermi energy (default = 0.0)
        
@@ -152,8 +155,9 @@ def get_fermi_triangles(tcd_list,ef=0.0):
     F = np.zeros((3,4))
     
     for i in range(4):
-        e[i]=tcd_list[i][3]
-        k[i,:]=tcd_list[i][0:3]
+        k[i,:]=tcd_list[i][0] # first element of tuple is k vector
+        e[i]=tcd_list[i][1] # second element of tuple is energy
+        
         
     triangles = []
     if ef>e[0] and ef<=e[1]:
@@ -180,6 +184,8 @@ def get_fermi_triangles(tcd_list,ef=0.0):
                 if de == 0.0:
                     a[i,j]=0.5
                 else:
+                    #the paper has a typo: says a[i,j]=de/(ef-e[j])
+                    # but that is clearly wrong!!!
                     a[i,j]=(ef-e[j])/de
                 
         F =np.array([[a[0,2],    0.0, a[2,0],    0.0], \
@@ -205,10 +211,16 @@ def get_fermi_triangles(tcd_list,ef=0.0):
                     a[i,j]=0.5
                 else:
                     a[i,j]=(ef-e[j])/de
-                
+
+# this is what the paper says, but I think it's a typo               
+#        F =np.array([[a[0,3],    0.0,     0.0, a[3,0]], \
+#                     [a[0,2], a[1,3],     0.0, a[3,1]], \
+#                     [a[0,1],    0.0,  a[2,3], a[3,2]]])
+
+# I think it should be this: proceed with caution                              
         F =np.array([[a[0,3],    0.0,     0.0, a[3,0]], \
-                     [a[0,2], a[1,3],     0.0, a[3,1]], \
-                     [a[0,1],    0.0,  a[2,3], a[3,2]]])
+                     [   0.0, a[1,3],     0.0, a[3,1]], \
+                     [   0.0,    0.0,  a[2,3], a[3,2]]])
         
         ktri = np.matmul(F,k)
         triangles.append(ktri)
@@ -216,7 +228,35 @@ def get_fermi_triangles(tcd_list,ef=0.0):
 
     else:  #(ef < e[0]) or (ef >= e[3]):
         return triangles
-    
-    
-    return triangles
+
+# END get_fermi_triangles(tcd_list,ef) function definition
+        
+def plot_triangle_set(triangle_set=[]):
+    '''
+    Input: triangle_set = a list of 3x3 numpy arrays.  Each numpy array describes the 3 kpoints of a triangle. 
+                                      rows are triangle #, 
+                                      
+                          columns are x,y,z values respectively
+                          
+                          ex. 
+                          [0 0 1;
+                          1 0 1;
+                          0 1 0;]
+                          
+                          means 
+                          point 0: [kx,ky,kz]=[0,0,1]
+                          point 1: [kx,ky,kz]=[1,0,1]
+                          point 2: [kx,ky,kz]=[0,1,0]
+                          
+    Output: 3D plot of Fermi surface (no return)
+    '''
+    fig = plt.figure()
+    ax = a3.Axes3D(fig)
+    #triangle_set = [np.array([[1,0,0],[0,1,0],[0,0,1]])]
+    for vtx_array in triangle_set:
+        tri = a3.art3d.Poly3DCollection([vtx_array])
+        tri.set_edgecolor('k')
+        ax.add_collection3d(tri)
+    plt.show()
+    return
         
