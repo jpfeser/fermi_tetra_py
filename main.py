@@ -16,6 +16,7 @@ FILENAME = "vfermi.frmsf"
 #Now do some calculation for each band/tetrahedron
 #for each band
 all_triangles = []
+step = 2
 for band in range(nb):
     rhomb_index = -1
     # for each starting tetrahedron index
@@ -35,7 +36,7 @@ for band in range(nb):
                         # then add that/those Fermi surf. triangles to the set of previous triangles
                         band_triangles.append(subset)
     #now plot the Fermi surface for that band
-    tetra_toolbox.plot_triangle_set(band_triangles)
+    tetra_toolbox.plot_triangle_set(band_triangles,bvect)
     all_triangles.append(band_triangles)
                 # then I calculate whatever I want (lets sum E*df/dT(vg,z dot dA)) for each tetrahedra
                 

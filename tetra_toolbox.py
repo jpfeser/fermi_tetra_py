@@ -25,12 +25,19 @@ def get_corners(i0, i1, i2, bvect, ng0, eig0):
     ip1 = (i1 + 1) % ng0[1]
     ip2 = (i2 + 1) % ng0[2]
 
-    k0in = (i0/(ng0[0]-1))*bvect[:,0]
-    k0out = (ip0/(ng0[0]-1))*bvect[:,0]
-    k1in = (i1/(ng0[1]-1))*bvect[:,1]
-    k1out = (ip1/(ng0[1]-1))*bvect[:,1]
-    k2in = (i2/(ng0[2]-1))*bvect[:,2]
-    k2out = (ip2/(ng0[2]-1))*bvect[:,2]
+#    k0in = (i0/(ng0[0]-1))*bvect[:,0]
+#    k0out = ((i0 + 1)/(ng0[0]-1))*bvect[:,0]
+#    k1in = (i1/(ng0[1]-1))*bvect[:,1]
+#    k1out = ((i1 + 1)/(ng0[1]-1))*bvect[:,1]
+#    k2in = (i2/(ng0[2]-1))*bvect[:,2]
+#    k2out = ((i2 + 1)/(ng0[2]-1))*bvect[:,2]
+    
+    k0in = (i0/(ng0[0]))*bvect[:,0]
+    k0out = ((i0 + 1)/(ng0[0]))*bvect[:,0]
+    k1in = (i1/(ng0[1]))*bvect[:,1]
+    k1out = ((i1 + 1)/(ng0[1]))*bvect[:,1]
+    k2in = (i2/(ng0[2]))*bvect[:,2]
+    k2out = ((i2 + 1)/(ng0[2]))*bvect[:,2]
     
     #calculate fermi velocity
     
@@ -231,7 +238,7 @@ def get_fermi_triangles(tcd_list,ef=0.0):
 
 # END get_fermi_triangles(tcd_list,ef) function definition
         
-def plot_triangle_set(triangle_set=[]):
+def plot_triangle_set(triangle_set,*argv):
     '''
     Input: triangle_set = a list of 3x3 numpy arrays.  Each numpy array describes the 3 kpoints of a triangle. 
                                       rows are triangle #, 
@@ -250,12 +257,31 @@ def plot_triangle_set(triangle_set=[]):
                           
     Output: 3D plot of Fermi surface (no return)
     '''
+
+    
     fig = plt.figure()
     ax = a3.Axes3D(fig)
-    #triangle_set = [np.array([[1,0,0],[0,1,0],[0,0,1]])]
+    if len(argv) is 1:
+        bvect = argv[0]
+        for i in range(3):
+            start_pt = bvect[:,i]
+            end_pt = start_pt + bvect[:,(i + 1) % 3]
+            ax.plot([start_pt[0],end_pt[0]],[start_pt[1],end_pt[1]],[start_pt[2],end_pt[2]])
+            
+            end_pt = start_pt + bvect[:,(i + 2) % 3]
+            ax.plot([start_pt[0],end_pt[0]],[start_pt[1],end_pt[1]],[start_pt[2],end_pt[2]])
+            
+            end_pt = 0*start_pt
+            ax.plot([start_pt[0],end_pt[0]],[start_pt[1],end_pt[1]],[start_pt[2],end_pt[2]])
+
+            start_pt = bvect[:,0] + bvect[:,1] + bvect[:,2]
+            end_pt = start_pt - bvect[:,i]
+            ax.plot([start_pt[0],end_pt[0]],[start_pt[1],end_pt[1]],[start_pt[2],end_pt[2]])
+        
     for vtx_array in triangle_set:
         tri = a3.art3d.Poly3DCollection([vtx_array])
-        tri.set_edgecolor('k')
+        tri.set_edgecolor('none')
+        tri.set_edgecolor('yellow')
         ax.add_collection3d(tri)
     plt.show()
     return
