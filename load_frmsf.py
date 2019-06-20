@@ -17,6 +17,7 @@ import numpy as np
 ry2joule = 2.1798741E-18
 au2m = 5.291772083E-11
 hbar = 1.0545718e-34
+kb = 1.38064852e-23
 
 def load_frmsrf(filename,*vargin):
     fo = open(filename,"r")

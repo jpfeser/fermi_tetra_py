@@ -8,7 +8,7 @@ import mpl_toolkits.mplot3d as a3
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 
-def get_corners(i0, i1, i2, bvect, ng0, eig0):
+def get_corners(i0, i1, i2, bvect, ng0, eig0, *vargin):
     '''
     inputs:
         i0:  index along first bvect component
@@ -18,6 +18,7 @@ def get_corners(i0, i1, i2, bvect, ng0, eig0):
         ng0:  list with number of k-mesh points in each direction [ng00 ng01 ng02]
         eig0:  numpy array with shape [nb,ng0[0],ng0[1],ng0[2]]
     output:  
+        *vargin: additional quantites with same shape as eig0 to be broken into corners of rhombehdron
         rcd: a dictionary with corner indices of the rhombehedra as the keys
             the associated values are a tuple (float kc[3],float eigc) 
     '''
@@ -40,8 +41,6 @@ def get_corners(i0, i1, i2, bvect, ng0, eig0):
     k2in = (i2/(ng0[2]))*bvect[:,2]
     k2out = ((i2 + 1)/(ng0[2]))*bvect[:,2]
     
-    #calculate fermi velocity
-    
     rcd = {}
     rcd[0]= (k0in+k1in+k2in, eig0[i0,i1,i2])
     rcd[1]= (k0out+k1in+k2in, eig0[ip0,i1,i2])
@@ -52,6 +51,16 @@ def get_corners(i0, i1, i2, bvect, ng0, eig0):
     rcd[6]= (k0out+k1in+k2out, eig0[ip0,i1,ip2])
     rcd[7]= (k0out+k1out+k2out, eig0[ip0,ip1,ip2])
     
+    for j in range(len(vargin)):
+        rcd[0] += (vargin[j][i0,i1,i2],)
+        rcd[1] += (vargin[j][ip0,i1,i2],)
+        rcd[2] += (vargin[j][i0,ip1,i2],)
+        rcd[3] += (vargin[j][i0,i1,ip2],)
+        rcd[4] += (vargin[j][ip0,ip1,i2],)
+        rcd[5] += (vargin[j][i0,ip1,ip2],)
+        rcd[6] += (vargin[j][ip0,i1,ip2],)
+        rcd[7] += (vargin[j][ip0,ip1,ip2],)  
+    
     return rcd
 
 def break2tetra(rcd):
@@ -59,12 +68,13 @@ def break2tetra(rcd):
     take a rhombedra dictionary and break into into the corresponding tetrahedra.
     
     inputs:  rcd, rhombedra dictionary contains a set of 8 keys/values:  {corner number:tuple}
-        where tuple is (kc0,kc1,kc2,eigvalue) where kc0,kc1,kc2 are the x,y,z 
-        value of k at the corner, and eigvalue is the associated energy typically.
+        where tuple is (kc0,kc1,kc2,eigvalue,...) where kc0,kc1,kc2 are the x,y,z 
+        value of k at the corner, and eigvalue is the associated energy, 
+        varg can be additional tuple entries and are treated similarly to eigvalue otherwise.
         
     output:  tcd is a dictionary with one key for each tetrahedron (6 total),
-           the values are a list (length 4) corresponding to the information at corner.
-           At each corner (i.e. list value), a tuple is given (kc[0:2],energy).  
+           the values are a list (length 4 + len(varg)) corresponding to the information at corner.
+           At each corner (i.e. list value), a tuple is given (kc[0:2],energy,vargs).  
            The list is sorted such that the first tuple's energy is the 
            smallest (ascending).  For definitions of the colors see the ArXiv
            article (https://arxiv.org/pdf/1811.06177.pdf)
@@ -161,13 +171,21 @@ def get_fermi_triangles(tcd_list,ef=0.0):
     ktri = np.zeros((3,3))
     a = np.zeros((4,4))
     F = np.zeros((3,4))
+    Nval = len(tcd_list[0])-2
+    Xval = np.zeros((4,Nval)); #note assuming extra entries are floats for now
+
     
+    #readout the values at the four corners (numbering should be presorted in 
+    # ascending energy
     for i in range(4):
         k[i,:]=tcd_list[i][0] # first element of tuple is k vector
         e[i]=tcd_list[i][1] # second element of tuple is energy
-        
+        # if there are additional entries, read them out too.
+        for j in range(Nval):
+            Xval[i,j] = tcd_list[i][2+j]
         
     triangles = []
+    vertices = []
     if ef>e[0] and ef<=e[1]:
         for i in range(4):
             for j in range(4):
@@ -183,7 +201,12 @@ def get_fermi_triangles(tcd_list,ef=0.0):
         
         ktri = np.matmul(F,k)
         triangles.append(ktri)
-        return triangles
+        
+        # 3 x N (n=0 -> energy, others depend on tcd xtras)
+        Xtri = np.matmul(F,Xval)
+        vertices.append(Xtri)
+        
+        return triangles,vertices
     
     elif ef>e[1] and ef<e[2]:
         for i in range(4):
@@ -202,6 +225,9 @@ def get_fermi_triangles(tcd_list,ef=0.0):
         
         ktri = np.matmul(F,k)
         triangles.append(ktri)
+        # 3 x N (n=0 -> energy, others depend on tcd xtras)
+        Xtri = np.matmul(F,Xval)
+        vertices.append(Xtri)
         
         F =np.array([[a[0,2],    0.0, a[2,0],    0.0], \
                      [   0.0, a[1,2], a[2,1],    0.0], \
@@ -209,7 +235,11 @@ def get_fermi_triangles(tcd_list,ef=0.0):
         
         ktri = np.matmul(F,k)
         triangles.append(ktri)
-        return triangles
+                # 3 x N (n=0 -> energy, others depend on tcd xtras)
+        Xtri = np.matmul(F,Xval)
+        vertices.append(Xtri)
+        
+        return triangles,vertices
     
     elif ef>=e[2] and ef<e[3]:
         for i in range(4):
@@ -232,10 +262,13 @@ def get_fermi_triangles(tcd_list,ef=0.0):
         
         ktri = np.matmul(F,k)
         triangles.append(ktri)
-        return triangles
+        # 3 x N (n=0 -> energy, others depend on tcd xtras)
+        Xtri = np.matmul(F,Xval)
+        vertices.append(Xtri)
+        return triangles,vertices
 
     else:  #(ef < e[0]) or (ef >= e[3]):
-        return triangles
+        return triangles,vertices
 
 # END get_fermi_triangles(tcd_list,ef) function definition
         
@@ -286,5 +319,37 @@ def plot_triangle_set(triangle_set,*argv):
         ax.add_collection3d(tri)
     plt.show()
     return
+
+def get_area(ktri,*varg):
+    '''
+    input:  ktri = 3 x 3 numpy array (i = corner #, j=x,y,z) specifying a 3D triangle
+            vf (optional): 3 x 3 numpy array with fermi velocity (i = corner #, j=x,y,z)
+    output: dA = area of triangle
+            vfc = Fermi velocity at centroid (3,1) if vf is entered.
+            n = unit normal based on interpolated vf if vf is entered.
+    '''
+    a = ktri[1,:]-ktri[0,:];
+    b = ktri[2,:]-ktri[0,:];
+    dA = np.linalg.norm(np.cross(a,b))/2;
+    nalt = np.cross(a,b)/(2*dA) # this does not seem to be same as n *gulp*
+    
+    if len(varg) is 0:
+        return dA
+    elif len(varg) is 1:
+        vf = varg[0]
+        #compute the avg. value of vf at centroid
+        #position of centroid
+        kc = (ktri[0,:]+ktri[1,:]+ktri[2,:])/3
+        #linear intepolation
+        mid12 = (ktri[1,:]+ktri[2,:])/2
+        d0c = np.linalg.norm(kc-ktri[0,:])
+        dcmid12 = np.linalg.norm(kc-mid12)
+        dtot = d0c + dcmid12
+        vfmid12 = (vf[1,:]+vf[2,:])/2
+        vfc = vfmid12*dcmid12/dtot + vf[0,:]*d0c/dtot
+        n = vfc/np.linalg.norm(vfc)
+        return dA,vfc,n
+    else:
+        print('error in get_area - too many arguments')
 
         
