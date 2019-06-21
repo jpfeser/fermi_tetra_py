@@ -26,7 +26,7 @@ def load_frmsrf(filename,*vargin):
     #Now grid density
     print("loading grid density:\n")
     ng0line = fo.readline().split()
-    ng0=np.asarray(ng0line, dtype=np.int8)
+    ng0=np.asarray(ng0line, dtype=np.int64)
     print(ng0)
     
     #Now read shift type
@@ -88,7 +88,7 @@ def load_frmsrf(filename,*vargin):
                         ii2 = (i2 + (ng0[2] + 1) / 2) % ng0[2];
                     eig0[ib,ii0,ii1,ii2]= float(fo.readline().strip());
     
-    print("Energies have been loads into array with shape\n (nbands,nk1,nk2,nk3)=",eig0.shape)                
+    print("Energies have been loaded into array with shape\n (nbands,nk1,nk2,nk3)=",eig0.shape)                
     if len(vargin) is 1:
         print('reporting energy in units of J')
         eig0 = eig0*ry2joule
@@ -162,6 +162,7 @@ def load_frmsrf(filename,*vargin):
     
     if len(vargin) is 1:
         print('reporting vf in units of m/s')
+        #vf = 1/hbar* de/dk
         vf = vf/hbar
     
     return (ng0,nb,avect,bvect,eig0,mat0,lshift,vf)
