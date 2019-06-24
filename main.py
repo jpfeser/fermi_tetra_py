@@ -12,14 +12,14 @@ from load_frmsf import hbar,kb,au2m
 from numpy import pi
 
 # Material 1
-FILENAME = "Al.frmsf"
-mat1 = 'Al'
-alat =  7.628*au2m; 
+FILENAME = "Ir.frmsf"
+mat1 = 'Ir'
+alat =  7.255*au2m; 
 
 # Material 2
-FILENAME2 = "Fe.frmsf"
-mat2 = 'Fe'
-alat2 =  5.4167*au2m; 
+FILENAME2 = "Pd.frmsf"
+mat2 = 'Pd'
+alat2 =  7.292*au2m;
 #Cu = 6.80
 #Al = 7.628216862
 #V = 5.671348546
@@ -27,9 +27,11 @@ alat2 =  5.4167*au2m;
 #Au = 7.681
 #Ni = 6.612
 #Fe = 5.4167
+#Ir = 7.255
+#Pd = 7.292
 
-plots = 'on'
-plots2 = 'on'
+plots = 'off'
+plots2 = 'off'
 nint = np.array([1.,1.,1.])
 tau = 1.0
 T = 300
